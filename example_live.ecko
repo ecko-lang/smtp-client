@@ -1,0 +1,17 @@
+# A real delivery through an SMTP relay. Configure via environment and run:
+#
+#   SMTP_HOST=smtp.example.com SMTP_USER=me SMTP_PASS=app-password \
+#   SMTP_FROM=me@example.com SMTP_TO=you@example.com ecko example_live.ecko
+#
+# (Not part of `ecko test`, which is offline - this needs a reachable relay.)
+# Port 587 defaults to STARTTLS; port 465 to TLS-from-the-first-byte.
+
+import std.os
+import "./main.ecko"
+
+server = { host: os.env("SMTP_HOST"), port: int(os.env_or("SMTP_PORT", "587")), user: os.env("SMTP_USER"), pass: secret(os.env("SMTP_PASS")) }
+
+out = main.send(server, { from: os.env("SMTP_FROM"), to: os.env("SMTP_TO"), subject: "hello from pure Ecko", body: "Sent by the smtp package over std.net + STARTTLS." })
+
+print("accepted: " + string(out.accepted))
+print("reply:    " + out.reply)

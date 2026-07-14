@@ -1,0 +1,77 @@
+# Offline tests, run by `ecko test` (no server needed). These cover the pure
+# parts - message building, dot-stuffing, AUTH PLAIN encoding, reply parsing,
+# and the mock transport. The live protocol round trip (EHLO/STARTTLS/DATA)
+# is exercised by example_live.ecko against a real server.
+import std.test
+import "./main.ecko"
+
+test.case("builds a minimal message", || {
+    got = main.build_message({ from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" })
+    want = "From: ada@ecko.test\r\nTo: bob@ecko.test\r\nSubject: hi\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello"
+    test.eq(got, want)
+})
+
+test.case("joins multiple recipients in To:", || {
+    got = main.build_message({ from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "" })
+    test.eq(contains(got, "To: b@y, c@z\r\n"), true)
+})
+
+test.case("includes Date and extra headers in sorted order", || {
+    # Header names contain '-', so the map is built with insert().
+    extra = insert(insert(empty_map(), "X-Zed", "z"), "X-App", "ecko")
+    got = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "", date: "Tue, 14 Jul 2026 12:00:00 +0000", headers: extra })
+    want = "From: a@x\r\nTo: b@y\r\nSubject: s\r\nDate: Tue, 14 Jul 2026 12:00:00 +0000\r\nX-App: ecko\r\nX-Zed: z\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n"
+    test.eq(got, want)
+})
+
+test.case("normalizes body line endings to CRLF", || {
+    got = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "one\ntwo\r\nthree" })
+    test.eq(ends_with(got, "\r\n\r\none\r\ntwo\r\nthree"), true)
+})
+
+test.case("dot-stuffs lines that start with a dot", || {
+    test.eq(main.dot_stuff(".hi"), "..hi")
+    test.eq(main.dot_stuff("a\n.b\n..c"), "a\r\n..b\r\n...c")
+})
+
+test.case("dot_stuff normalizes LF and CRLF alike", || {
+    test.eq(main.dot_stuff("a\r\nb\nc"), "a\r\nb\r\nc")
+})
+
+test.case("encodes AUTH PLAIN credentials", || {
+    # base64("\0user\0pass")
+    test.eq(main.auth_plain("user", "pass"), "AHVzZXIAcGFzcw==")
+})
+
+test.case("parses a continued reply line", || {
+    r = main.parse_reply_line("250-STARTTLS")
+    test.eq(r.code, 250)
+    test.eq(r.more, true)
+    test.eq(r.text, "STARTTLS")
+})
+
+test.case("parses a final reply line", || {
+    r = main.parse_reply_line("221 Bye")
+    test.eq(r.code, 221)
+    test.eq(r.more, false)
+    test.eq(r.text, "Bye")
+})
+
+test.case("parses a bare code line", || {
+    r = main.parse_reply_line("354")
+    test.eq(r.code, 354)
+    test.eq(r.more, false)
+    test.eq(r.text, "")
+})
+
+test.case("extracts the address from a display-name form", || {
+    test.eq(main.addr_of("Ada Lovelace <ada@ecko.test>"), "ada@ecko.test")
+    test.eq(main.addr_of("bob@ecko.test"), "bob@ecko.test")
+})
+
+test.case("mock transport returns the envelope offline", || {
+    out = main.send({ mock: true }, { from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "hi" })
+    test.eq(out.mock, true)
+    test.eq(out.accepted, ["b@y", "c@z"])
+    test.eq(contains(out.data, "Subject: s\r\n"), true)
+})

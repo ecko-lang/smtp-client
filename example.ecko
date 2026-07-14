@@ -1,0 +1,22 @@
+# The mock transport: no server, no network - `send` with `{ mock: true }`
+# returns the envelope and the built RFC 5322 message instead of delivering
+# it. Runs offline:
+#
+#   ecko example.ecko
+#
+# For a real delivery, see example_live.ecko.
+
+import "./main.ecko"
+
+out = main.send({ mock: true }, { 
+    from: "Ada Lovelace <ada@ecko.test>", 
+    to: ["bob@ecko.test", "carol@ecko.test"], 
+    subject: "hello from pure Ecko", 
+    body: "This message was built by the smtp package.\nNo network was harmed.", 
+    date: "Tue, 14 Jul 2026 12:00:00 +0000" 
+})
+
+print("mock:     " + string(out.mock))
+print("accepted: " + string(out.accepted))
+print("---")
+print(out.data)
