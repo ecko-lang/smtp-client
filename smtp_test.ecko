@@ -6,7 +6,9 @@ import std.test
 import "./main.ecko"
 
 test.case("builds a minimal message", || {
-    got = main.build_message({ from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" })
+    got = main.build_message(
+        { from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" },
+    )
     want = "From: ada@ecko.test\r\nTo: bob@ecko.test\r\nSubject: hi\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello"
     test.eq(got, want)
 })
@@ -19,7 +21,16 @@ test.case("joins multiple recipients in To:", || {
 test.case("includes Date and extra headers in sorted order", || {
     # Header names contain '-', so the map is built with insert().
     extra = insert(insert(empty_map(), "X-Zed", "z"), "X-App", "ecko")
-    got = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "", date: "Tue, 14 Jul 2026 12:00:00 +0000", headers: extra })
+    got = main.build_message(
+        {
+            from: "a@x",
+            to: "b@y",
+            subject: "s",
+            body: "",
+            date: "Tue, 14 Jul 2026 12:00:00 +0000",
+            headers: extra,
+        },
+    )
     want = "From: a@x\r\nTo: b@y\r\nSubject: s\r\nDate: Tue, 14 Jul 2026 12:00:00 +0000\r\nX-App: ecko\r\nX-Zed: z\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n"
     test.eq(got, want)
 })

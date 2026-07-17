@@ -11,8 +11,6 @@ import std.net
 import std.encoding
 import std.time
 
-export { send, build_message, dot_stuff, auth_plain, parse_reply_line, addr_of, read_reply, expect_code, command }
-
 # --- pure helpers (covered by the offline tests) ----------------------------
 
 fn to_list(v) = if type_of(v) == "list" { v } else { [v] }
@@ -24,34 +22,42 @@ fn opt(m, k, d) {
 }
 
 # addr_of("Ada <ada@x>") -> "ada@x"; a bare address passes through trimmed.
-fn addr_of(s) {
+export fn addr_of(s) {
     if contains(s, "<") and contains(s, ">") { split(split(s, "<")[1], ">")[0] } else { trim(s) }
 }
 
 # One reply line -> { code, more, text }. "250-x" continues a multiline
 # reply; "250 x" (or a bare "250") ends it.
-fn parse_reply_line(line) {
+export fn parse_reply_line(line) {
     code = int(line[0..3])
-    if len(line) <= 3 { { code: code, more: false, text: "" } } else { { code: code, more: line[3] == "-", text: trim(line[4..len(line)]) } }
+    if len(line) <= 3 {
+        { code: code, more: false, text: "" }
+    } else {
+        { code: code, more: line[3] == "-", text: trim(line[4..len(line)]) }
+    }
 }
 
 # Normalize line endings to CRLF and escape leading dots (RFC 5321 §4.5.2),
 # so a body line of "." can't terminate the DATA phase early.
-fn dot_stuff(text) {
+export fn dot_stuff(text) {
     unified = replace(replace(text, "\r\n", "\n"), "\r", "\n")
     stuffed = map(split(unified, "\n"), |l| if starts_with(l, ".") { "." + l } else { l })
     join(stuffed, "\r\n")
 }
 
 # The AUTH PLAIN initial response: base64("\0user\0pass").
-fn auth_plain(user, pass) = encoding.base64_encode(b"\x00" + bytes(user) + b"\x00" + bytes(pass))
+export fn auth_plain(user, pass) = encoding.base64_encode(b"\x00" + bytes(user) + b"\x00" + bytes(pass))
 
 # build_message(msg) -> RFC 5322 text (CRLF line endings): From / To /
 # Subject [/ Date] / extra headers (sorted by name) / MIME headers, a blank
 # line, then the body. msg: { from, to (string|list), subject, body,
 # date?, headers? }.
-fn build_message(msg) {
-    mut lines = ["From: " + msg.from, "To: " + join(to_list(msg.to), ", "), "Subject: " + msg.subject]
+export fn build_message(msg) {
+    mut lines = [
+        "From: " + msg.from,
+        "To: " + join(to_list(msg.to), ", "),
+        "Subject: " + msg.subject,
+    ]
     date = get(msg, "date")
     unless is_null(date) { lines = push(lines, "Date: " + date) }
     extra = get(msg, "headers")
@@ -70,7 +76,7 @@ fn build_message(msg) {
 
 # read_reply(sock) -> { code, lines }, collecting a full (possibly
 # multiline) server reply.
-fn read_reply(sock) {
+export fn read_reply(sock) {
     mut lines = []
     loop {
         raw = net.recv_until(sock, b"\r\n")
@@ -81,15 +87,23 @@ fn read_reply(sock) {
 }
 
 # Require the next reply to carry `want`, or throw { kind: "smtp", code }.
-fn expect_code(sock, want, label) {
+export fn expect_code(sock, want, label) {
     reply = read_reply(sock)
-    if reply.code != want { error({ kind: "smtp", code: reply.code, message: label + " failed: " + string(reply.code) + " " + join(reply.lines, " / ") }) }
+    if reply.code != want {
+        error(
+            {
+                kind: "smtp",
+                code: reply.code,
+                message: label + " failed: " + string(reply.code) + " " + join(reply.lines, " / "),
+            },
+        )
+    }
     reply
 }
 
 # Send one command line and require a reply code. Errors are labelled with
 # the command VERB only, so AUTH credentials never appear in error text.
-fn command(sock, line, want) {
+export fn command(sock, line, want) {
     net.send(sock, line + "\r\n")
     expect_code(sock, want, split(line, " ")[0])
 }
@@ -113,7 +127,11 @@ fn port_of(server, mode) {
 
 # Stamp a Date header at send time if the caller didn't supply one.
 fn stamped(msg) {
-    if is_null(get(msg, "date")) { insert(msg, "date", time.format(time.now(), "%a, %d %b %Y %H:%M:%S +0000")) } else { msg }
+    if is_null(get(msg, "date")) {
+        insert(msg, "date", time.format(time.now(), "%a, %d %b %Y %H:%M:%S +0000"))
+    } else {
+        msg
+    }
 }
 
 # The mock transport: no socket, no Date stamping - returns the envelope and
@@ -129,12 +147,16 @@ fn mock_send(msg) {
 #   msg:    { from, to (string|list), subject, body, date?, headers? }
 #
 # The password may be a `secret` - it is revealed only for the AUTH exchange.
-fn send(server, msg) {
+export fn send(server, msg) {
     if opt(server, "mock", false) == true { return mock_send(msg) }
     mode = mode_of(server)
     port = port_of(server, mode)
     verify = opt(server, "verify", true)
-    sock = if mode == "tls" { net.connect_tls(server.host, port, { verify: verify }) } else { net.connect(server.host, port) }
+    sock = if mode == "tls" {
+        net.connect_tls(server.host, port, { verify: verify })
+    } else {
+        net.connect(server.host, port)
+    }
     expect_code(sock, 220, "greeting")
     helo = opt(server, "helo", "localhost")
     command(sock, "EHLO " + helo, 250)

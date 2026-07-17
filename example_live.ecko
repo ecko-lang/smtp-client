@@ -9,9 +9,22 @@
 import std.os
 import "./main.ecko"
 
-server = { host: os.env("SMTP_HOST"), port: int(os.env_or("SMTP_PORT", "587")), user: os.env("SMTP_USER"), pass: secret(os.env("SMTP_PASS")) }
+server = {
+    host: os.env("SMTP_HOST"),
+    port: int(os.env_or("SMTP_PORT", "587")),
+    user: os.env("SMTP_USER"),
+    pass: secret(os.env("SMTP_PASS")),
+}
 
-out = main.send(server, { from: os.env("SMTP_FROM"), to: os.env("SMTP_TO"), subject: "hello from pure Ecko", body: "Sent by the smtp package over std.net + STARTTLS." })
+out = main.send(
+    server,
+    {
+        from: os.env("SMTP_FROM"),
+        to: os.env("SMTP_TO"),
+        subject: "hello from pure Ecko",
+        body: "Sent by the smtp package over std.net + STARTTLS.",
+    },
+)
 
 print("accepted: " + string(out.accepted))
 print("reply:    " + out.reply)
