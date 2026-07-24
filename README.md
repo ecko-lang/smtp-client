@@ -1,4 +1,4 @@
-# SMTP Client
+# SMTP Client - Ecko Std Lib Package
 
 An SMTP client (RFC 5321) for [Ecko](https://ecko.sh), written in Ecko. The
 protocol is CRLF lines over `std.net`'s raw sockets (`connect` /
@@ -8,22 +8,32 @@ socket in place - no native code. AUTH PLAIN rides `std.encoding`'s base64.
 ## Install
 
 ```bash
-ecko add https://github.com/ecko-sh/smtp-client
+ecko get github.com/ecko-sh/smtp-client
 ```
 
-`ecko add` vendors the package into your project's `./vendor/smtp/` and pins
-it by SHA-256 in `ecko.lock`. Grant it the network capability in your
-`ecko.json`:
+`ecko get` vendors the package under
+`./vendor/github.com/ecko-sh/smtp-client/` and pins a file-tree hash in
+`ecko.sum`.
+
+`ecko get` records this dependency under the alias `smtp-client`, which
+isn't a valid import name (hyphens aren't allowed in Ecko identifiers). Alias
+it to `smtp` in your `ecko.json` - this also grants the network capability
+the client needs:
 
 ```json
 {
   "dependencies": {
     "smtp": {
-      "source": "https://github.com/ecko-sh/smtp-client",
+      "path": "github.com/ecko-sh/smtp-client",
+      "version": "v0.9.1",
       "grant": ["net"]
     }
   }
 }
+```
+
+```ecko
+import smtp
 ```
 
 ## Use
@@ -42,7 +52,7 @@ smtp.send(
         from: "Me <me@example.com>",
         to: ["you@example.com"],       # a single string works too
         subject: "hello",
-        body: "Sent from pure Ecko.",
+        body: "Sent from Ecko.",
     },
 )
 # -> { accepted: ["you@example.com"], reply: "2.0.0 queued as ..." }

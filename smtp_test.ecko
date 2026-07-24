@@ -5,7 +5,7 @@
 import std.test
 import "./main.ecko"
 
-test.case("builds a minimal message", || {
+test.case("builds a minimal message", fn() {
     got = main.build_message(
         { from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" },
     )
@@ -13,12 +13,12 @@ test.case("builds a minimal message", || {
     test.eq(got, want)
 })
 
-test.case("joins multiple recipients in To:", || {
+test.case("joins multiple recipients in To:", fn() {
     got = main.build_message({ from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "" })
     test.eq(contains(got, "To: b@y, c@z\r\n"), true)
 })
 
-test.case("includes Date and extra headers in sorted order", || {
+test.case("includes Date and extra headers in sorted order", fn() {
     # Header names contain '-', so the map is built with insert().
     extra = insert(insert(empty_map(), "X-Zed", "z"), "X-App", "ecko")
     got = main.build_message(
@@ -35,52 +35,52 @@ test.case("includes Date and extra headers in sorted order", || {
     test.eq(got, want)
 })
 
-test.case("normalizes body line endings to CRLF", || {
+test.case("normalizes body line endings to CRLF", fn() {
     got = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "one\ntwo\r\nthree" })
     test.eq(ends_with(got, "\r\n\r\none\r\ntwo\r\nthree"), true)
 })
 
-test.case("dot-stuffs lines that start with a dot", || {
+test.case("dot-stuffs lines that start with a dot", fn() {
     test.eq(main.dot_stuff(".hi"), "..hi")
     test.eq(main.dot_stuff("a\n.b\n..c"), "a\r\n..b\r\n...c")
 })
 
-test.case("dot_stuff normalizes LF and CRLF alike", || {
+test.case("dot_stuff normalizes LF and CRLF alike", fn() {
     test.eq(main.dot_stuff("a\r\nb\nc"), "a\r\nb\r\nc")
 })
 
-test.case("encodes AUTH PLAIN credentials", || {
+test.case("encodes AUTH PLAIN credentials", fn() {
     # base64("\0user\0pass")
     test.eq(main.auth_plain("user", "pass"), "AHVzZXIAcGFzcw==")
 })
 
-test.case("parses a continued reply line", || {
+test.case("parses a continued reply line", fn() {
     r = main.parse_reply_line("250-STARTTLS")
     test.eq(r.code, 250)
     test.eq(r.more, true)
     test.eq(r.text, "STARTTLS")
 })
 
-test.case("parses a final reply line", || {
+test.case("parses a final reply line", fn() {
     r = main.parse_reply_line("221 Bye")
     test.eq(r.code, 221)
     test.eq(r.more, false)
     test.eq(r.text, "Bye")
 })
 
-test.case("parses a bare code line", || {
+test.case("parses a bare code line", fn() {
     r = main.parse_reply_line("354")
     test.eq(r.code, 354)
     test.eq(r.more, false)
     test.eq(r.text, "")
 })
 
-test.case("extracts the address from a display-name form", || {
+test.case("extracts the address from a display-name form", fn() {
     test.eq(main.addr_of("Ada Lovelace <ada@ecko.test>"), "ada@ecko.test")
     test.eq(main.addr_of("bob@ecko.test"), "bob@ecko.test")
 })
 
-test.case("mock transport returns the envelope offline", || {
+test.case("mock transport returns the envelope offline", fn() {
     out = main.send({ mock: true }, { from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "hi" })
     test.eq(out.mock, true)
     test.eq(out.accepted, ["b@y", "c@z"])

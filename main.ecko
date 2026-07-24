@@ -41,7 +41,7 @@ export fn parse_reply_line(line) {
 # so a body line of "." can't terminate the DATA phase early.
 export fn dot_stuff(text) {
     unified = replace(replace(text, "\r\n", "\n"), "\r", "\n")
-    stuffed = map(split(unified, "\n"), |l| if starts_with(l, ".") { "." + l } else { l })
+    stuffed = map(split(unified, "\n"), fn(l) if starts_with(l, ".") { "." + l } else { l })
     join(stuffed, "\r\n")
 }
 

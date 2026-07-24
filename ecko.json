@@ -1,6 +1,6 @@
 {
-  "name": "smtp",
-  "version": "0.1.0",
+  "module": "github.com/ecko-sh/smtp-client",
+  "version": "0.9.1",
   "entrypoint": "main.ecko",
   "description": "An SMTP client (RFC 5321) written in Ecko, over std.net raw sockets + STARTTLS.",
   "author": "Sean Nieuwoudt <sean@underwulf.com>",
