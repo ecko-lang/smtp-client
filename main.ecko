@@ -46,7 +46,9 @@ export fn dot_stuff(text) {
 }
 
 # The AUTH PLAIN initial response: base64("\0user\0pass").
-export fn auth_plain(user, pass) = encoding.base64_encode(b"\x00" + bytes(user) + b"\x00" + bytes(pass))
+export fn auth_plain(user, pass) = encoding.base64_encode(
+    b"\x00" + bytes(user) + b"\x00" + bytes(pass),
+)
 
 # build_message(msg) -> RFC 5322 text (CRLF line endings): From / To /
 # Subject [/ Date] / extra headers (sorted by name) / MIME headers, a blank
