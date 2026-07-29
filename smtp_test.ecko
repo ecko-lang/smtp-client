@@ -20,7 +20,7 @@ test.case("joins multiple recipients in To:", fn() {
 
 test.case("includes Date and extra headers in sorted order", fn() {
     # Header names contain '-', so the map is built with insert().
-    extra = insert(insert(empty_map(), "X-Zed", "z"), "X-App", "ecko")
+    extra = { "X-Zed": "z", "X-App": "ecko" }
     got = main.build_message(
         {
             from: "a@x",
