@@ -8,11 +8,11 @@ socket in place - no native code. AUTH PLAIN rides `std.encoding`'s base64.
 ## Install
 
 ```bash
-ecko get github.com/ecko-sh/smtp-client
+ecko get github.com/ecko-lang/smtp-client
 ```
 
 `ecko get` vendors the package under
-`./vendor/github.com/ecko-sh/smtp-client/` and pins a file-tree hash in
+`./vendor/github.com/ecko-lang/smtp-client/` and pins a file-tree hash in
 `ecko.sum`.
 
 `ecko get` records this dependency under the alias `smtp-client`, which
@@ -24,8 +24,8 @@ the client needs:
 {
   "dependencies": {
     "smtp": {
-      "path": "github.com/ecko-sh/smtp-client",
-      "version": "v0.9.1",
+      "path": "github.com/ecko-lang/smtp-client",
+      "version": "v0.9.5",
       "grant": ["net"]
     }
   }
