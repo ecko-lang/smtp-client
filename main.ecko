@@ -54,6 +54,10 @@ export fn auth_plain(user, pass) = encoding.base64_encode(
 ## Subject [/ Date] / extra headers (sorted by name) / MIME headers, a blank
 ## line, then the body. msg: { from, to (string|list), subject, body,
 ## date?, headers? }.
+##
+## A header supplied in `headers` wins over the default this would otherwise
+## add, so a caller sending a multipart body (see the `mime` package) can set
+## its own Content-Type without ending up with two of them.
 export fn build_message(msg) {
     mut lines = [
         "From: " + msg.from,
@@ -62,14 +66,17 @@ export fn build_message(msg) {
     ]
     date = get(msg, "date")
     unless is_null(date) { lines = push(lines, "Date: " + date) }
-    extra = get(msg, "headers")
-    unless is_null(extra) {
-        for (k, v) in extra {
-            lines = push(lines, k + ": " + string(v))
-        }
+    extra = opt(msg, "headers", {})
+    # Sorted, because Ecko maps are unordered and the same message must render
+    # the same way every time.
+    for name in sort(keys(extra)) {
+        lines = push(lines, name + ": " + string(get(extra, name)))
     }
-    lines = push(lines, "MIME-Version: 1.0")
-    lines = push(lines, "Content-Type: text/plain; charset=utf-8")
+    supplied = map(keys(extra), fn(k) lower(k))
+    unless contains(supplied, "mime-version") { lines = push(lines, "MIME-Version: 1.0") }
+    unless contains(supplied, "content-type") {
+        lines = push(lines, "Content-Type: text/plain; charset=utf-8")
+    }
     body = replace(replace(msg.body, "\r\n", "\n"), "\r", "\n")
     join(lines, "\r\n") + "\r\n\r\n" + replace(body, "\n", "\r\n")
 }

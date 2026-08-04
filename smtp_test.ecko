@@ -86,3 +86,39 @@ test.case("mock transport returns the envelope offline", fn() {
     test.eq(out.accepted, ["b@y", "c@z"])
     test.eq(contains(out.data, "Subject: s\r\n"), true)
 })
+
+test.case("a caller-supplied Content-Type replaces the default, never duplicates it", fn() {
+    # The `mime` package sets a multipart Content-Type; two of them would make
+    # the message unparseable for the receiving client.
+    out = main.build_message(
+        {
+            from: "a@x",
+            to: "b@y",
+            subject: "s",
+            headers: { "Content-Type": "multipart/mixed; boundary=\"B\"" },
+            body: "hi",
+        },
+    )
+    types = filter(split(out, "\r\n"), fn(l) starts_with(l, "Content-Type:"))
+    test.eq(types, ["Content-Type: multipart/mixed; boundary=\"B\""])
+})
+
+test.case("extra headers render in sorted order", fn() {
+    out = main.build_message(
+        {
+            from: "a@x",
+            to: "b@y",
+            subject: "s",
+            headers: { "X-Zeta": "3", "X-Alpha": "1", "X-Mid": "2" },
+            body: "hi",
+        },
+    )
+    xs = filter(split(out, "\r\n"), fn(l) starts_with(l, "X-"))
+    test.eq(xs, ["X-Alpha: 1", "X-Mid: 2", "X-Zeta: 3"])
+})
+
+test.case("the MIME defaults still appear when the caller sets neither", fn() {
+    out = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "hi" })
+    test.ok(contains(out, "MIME-Version: 1.0"), "MIME-Version default")
+    test.ok(contains(out, "Content-Type: text/plain; charset=utf-8"), "Content-Type default")
+})

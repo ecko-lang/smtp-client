@@ -89,7 +89,7 @@ out.data    # the exact message a live send would deliver
 | `subject` | subject line |
 | `body` | plain text; line endings normalized, leading dots escaped |
 | `date` | optional `Date:` header; stamped at send time if omitted |
-| `headers` | optional map of extra headers (emitted sorted by name) |
+| `headers` | optional map of extra headers (emitted sorted by name); a `Content-Type` or `MIME-Version` here replaces the default rather than duplicating it |
 
 Failures throw `{ kind: "smtp", code, message }` - match on `code` for server
 rejections (`535` bad credentials, `550` mailbox refused, ...). Error text
