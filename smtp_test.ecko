@@ -5,13 +5,16 @@
 import std.test
 import "./main.ecko"
 
-test.case("builds a minimal message", fn() {
-    got = main.build_message(
-        { from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" },
-    )
-    want = "From: ada@ecko.test\r\nTo: bob@ecko.test\r\nSubject: hi\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello"
-    test.eq(got, want)
-})
+test.case(
+    "builds a minimal message",
+    fn() {
+        got = main.build_message(
+            { from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" },
+        )
+        want = "From: ada@ecko.test\r\nTo: bob@ecko.test\r\nSubject: hi\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello"
+        test.eq(got, want)
+    },
+)
 
 test.case("joins multiple recipients in To:", fn() {
     got = main.build_message({ from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "" })
