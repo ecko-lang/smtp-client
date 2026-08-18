@@ -21,22 +21,25 @@ test.case("joins multiple recipients in To:", fn() {
     test.eq(contains(got, "To: b@y, c@z\r\n"), true)
 })
 
-test.case("includes Date and extra headers in sorted order", fn() {
-    # Header names contain '-', so the map is built with insert().
-    extra = { "X-Zed": "z", "X-App": "ecko" }
-    got = main.build_message(
-        {
-            from: "a@x",
-            to: "b@y",
-            subject: "s",
-            body: "",
-            date: "Tue, 14 Jul 2026 12:00:00 +0000",
-            headers: extra,
-        },
-    )
-    want = "From: a@x\r\nTo: b@y\r\nSubject: s\r\nDate: Tue, 14 Jul 2026 12:00:00 +0000\r\nX-App: ecko\r\nX-Zed: z\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n"
-    test.eq(got, want)
-})
+test.case(
+    "includes Date and extra headers in sorted order",
+    fn() {
+        # Header names contain '-', so the map is built with insert().
+        extra = { "X-Zed": "z", "X-App": "ecko" }
+        got = main.build_message(
+            {
+                from: "a@x",
+                to: "b@y",
+                subject: "s",
+                body: "",
+                date: "Tue, 14 Jul 2026 12:00:00 +0000",
+                headers: extra,
+            },
+        )
+        want = "From: a@x\r\nTo: b@y\r\nSubject: s\r\nDate: Tue, 14 Jul 2026 12:00:00 +0000\r\nX-App: ecko\r\nX-Zed: z\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n"
+        test.eq(got, want)
+    },
+)
 
 test.case("normalizes body line endings to CRLF", fn() {
     got = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "one\ntwo\r\nthree" })
