@@ -1,13 +1,15 @@
 # smtp - an SMTP client (RFC 5321) written in pure Ecko.
 #
 # No native code: SMTP is CRLF lines over std.net's raw sockets (connect /
-# connect_tls, send, recv_until), with STARTTLS upgrading the live socket in
-# place (net.starttls) - the same plumbing the pure-Ecko DB clients ride.
+# connect_tls), read and written with the std.io stream verbs, with STARTTLS
+# upgrading the live socket in place (net.starttls) - the same plumbing the
+# pure-Ecko DB clients ride.
 # AUTH PLAIN is base64 via std.encoding.
 #
 # The entrypoint of the `smtp` package; `export` declares its public API.
 
 import std.net
+import std.io
 import std.encoding
 import std.time
 
@@ -88,7 +90,12 @@ export fn build_message(msg) {
 export fn read_reply(sock) {
     mut lines = []
     loop {
-        raw = net.recv_until(sock, b"\r\n")
+        # io.read_until answers null when the server closed with nothing
+        # pending, where the old net.recv_until raised. A server dropping the
+        # connection mid-session is ordinary - a 421 timeout does it - so the
+        # null becomes the error it used to be rather than a slice of null.
+        raw = io.read_until(sock, b"\r\n")
+        if is_null(raw) { error({ kind: "smtp", message: "the server closed the connection" }) }
         parsed = parse_reply_line(string(raw[0..len(raw) - 2]))
         lines = push(lines, parsed.text)
         if not parsed.more { return { code: parsed.code, lines: lines } }
@@ -113,7 +120,7 @@ export fn expect_code(sock, want, label) {
 ## Send one command line and require a reply code. Errors are labelled with
 ## the command VERB only, so AUTH credentials never appear in error text.
 export fn command(sock, line, want) {
-    net.send(sock, line + "\r\n")
+    io.write(sock, line + "\r\n")
     expect_code(sock, want, split(line, " ")[0])
 }
 
@@ -161,7 +168,7 @@ export fn send(server, msg) {
     mode = mode_of(server)
     port = port_of(server, mode)
     verify = opt(server, "verify", true)
-    sock = if mode == "tls" {
+    mut sock = if mode == "tls" {
         net.connect_tls(server.host, port, { verify: verify })
     } else {
         net.connect(server.host, port)
@@ -171,7 +178,10 @@ export fn send(server, msg) {
     command(sock, "EHLO " + helo, 250)
     if mode == "starttls" {
         command(sock, "STARTTLS", 220)
-        net.starttls(sock, { verify: verify })
+        # starttls returns the upgraded stream. It refuses the upgrade if any
+        # plaintext was read past the 220, which cannot happen here: the reply
+        # reader stops at the CRLF that ends it.
+        sock = net.starttls(sock, { verify: verify })
         command(sock, "EHLO " + helo, 250)
     }
     user = get(server, "user")
@@ -188,9 +198,9 @@ export fn send(server, msg) {
     command(sock, "DATA", 354)
     mut payload = dot_stuff(build_message(stamped(msg)))
     unless ends_with(payload, "\r\n") { payload = payload + "\r\n" }
-    net.send(sock, payload + ".\r\n")
+    io.write(sock, payload + ".\r\n")
     done = expect_code(sock, 250, "message body")
     try { command(sock, "QUIT", 221) } catch (e) { null }
-    net.close(sock)
+    io.close(sock)
     { accepted: rcpts, reply: join(done.lines, " ") }
 }
