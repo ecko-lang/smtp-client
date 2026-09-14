@@ -3,12 +3,12 @@
 # and the mock transport. The live protocol round trip (EHLO/STARTTLS/DATA)
 # is exercised by example_live.ecko against a real server.
 import std.test
-import "./main.ecko"
+import "../client.ecko"
 
 test.case(
     "builds a minimal message",
     fn() {
-        got = main.build_message(
+        got = client.build_message(
             { from: "ada@ecko.test", to: "bob@ecko.test", subject: "hi", body: "hello" },
         )
         want = "From: ada@ecko.test\r\nTo: bob@ecko.test\r\nSubject: hi\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nhello"
@@ -17,7 +17,7 @@ test.case(
 )
 
 test.case("joins multiple recipients in To:", fn() {
-    got = main.build_message({ from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "" })
+    got = client.build_message({ from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "" })
     test.eq(contains(got, "To: b@y, c@z\r\n"), true)
 })
 
@@ -26,7 +26,7 @@ test.case(
     fn() {
         # Header names contain '-', so the map is built with insert().
         extra = { "X-Zed": "z", "X-App": "ecko" }
-        got = main.build_message(
+        got = client.build_message(
             {
                 from: "a@x",
                 to: "b@y",
@@ -42,52 +42,52 @@ test.case(
 )
 
 test.case("normalizes body line endings to CRLF", fn() {
-    got = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "one\ntwo\r\nthree" })
+    got = client.build_message({ from: "a@x", to: "b@y", subject: "s", body: "one\ntwo\r\nthree" })
     test.eq(ends_with(got, "\r\n\r\none\r\ntwo\r\nthree"), true)
 })
 
 test.case("dot-stuffs lines that start with a dot", fn() {
-    test.eq(main.dot_stuff(".hi"), "..hi")
-    test.eq(main.dot_stuff("a\n.b\n..c"), "a\r\n..b\r\n...c")
+    test.eq(client.dot_stuff(".hi"), "..hi")
+    test.eq(client.dot_stuff("a\n.b\n..c"), "a\r\n..b\r\n...c")
 })
 
 test.case("dot_stuff normalizes LF and CRLF alike", fn() {
-    test.eq(main.dot_stuff("a\r\nb\nc"), "a\r\nb\r\nc")
+    test.eq(client.dot_stuff("a\r\nb\nc"), "a\r\nb\r\nc")
 })
 
 test.case("encodes AUTH PLAIN credentials", fn() {
     # base64("\0user\0pass")
-    test.eq(main.auth_plain("user", "pass"), "AHVzZXIAcGFzcw==")
+    test.eq(client.auth_plain("user", "pass"), "AHVzZXIAcGFzcw==")
 })
 
 test.case("parses a continued reply line", fn() {
-    r = main.parse_reply_line("250-STARTTLS")
+    r = client.parse_reply_line("250-STARTTLS")
     test.eq(r.code, 250)
     test.eq(r.more, true)
     test.eq(r.text, "STARTTLS")
 })
 
 test.case("parses a final reply line", fn() {
-    r = main.parse_reply_line("221 Bye")
+    r = client.parse_reply_line("221 Bye")
     test.eq(r.code, 221)
     test.eq(r.more, false)
     test.eq(r.text, "Bye")
 })
 
 test.case("parses a bare code line", fn() {
-    r = main.parse_reply_line("354")
+    r = client.parse_reply_line("354")
     test.eq(r.code, 354)
     test.eq(r.more, false)
     test.eq(r.text, "")
 })
 
 test.case("extracts the address from a display-name form", fn() {
-    test.eq(main.addr_of("Ada Lovelace <ada@ecko.test>"), "ada@ecko.test")
-    test.eq(main.addr_of("bob@ecko.test"), "bob@ecko.test")
+    test.eq(client.addr_of("Ada Lovelace <ada@ecko.test>"), "ada@ecko.test")
+    test.eq(client.addr_of("bob@ecko.test"), "bob@ecko.test")
 })
 
 test.case("mock transport returns the envelope offline", fn() {
-    out = main.send({ mock: true }, { from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "hi" })
+    out = client.send({ mock: true }, { from: "a@x", to: ["b@y", "c@z"], subject: "s", body: "hi" })
     test.eq(out.mock, true)
     test.eq(out.accepted, ["b@y", "c@z"])
     test.eq(contains(out.data, "Subject: s\r\n"), true)
@@ -96,7 +96,7 @@ test.case("mock transport returns the envelope offline", fn() {
 test.case("a caller-supplied Content-Type replaces the default, never duplicates it", fn() {
     # The `mime` package sets a multipart Content-Type; two of them would make
     # the message unparseable for the receiving client.
-    out = main.build_message(
+    out = client.build_message(
         {
             from: "a@x",
             to: "b@y",
@@ -110,7 +110,7 @@ test.case("a caller-supplied Content-Type replaces the default, never duplicates
 })
 
 test.case("extra headers render in sorted order", fn() {
-    out = main.build_message(
+    out = client.build_message(
         {
             from: "a@x",
             to: "b@y",
@@ -124,7 +124,7 @@ test.case("extra headers render in sorted order", fn() {
 })
 
 test.case("the MIME defaults still appear when the caller sets neither", fn() {
-    out = main.build_message({ from: "a@x", to: "b@y", subject: "s", body: "hi" })
+    out = client.build_message({ from: "a@x", to: "b@y", subject: "s", body: "hi" })
     test.ok(contains(out, "MIME-Version: 1.0"), "MIME-Version default")
     test.ok(contains(out, "Content-Type: text/plain; charset=utf-8"), "Content-Type default")
 })
