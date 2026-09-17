@@ -94,9 +94,9 @@ export fn read_reply(sock) {
     mut lines = []
     loop {
         # io.read_until answers null when the server closed with nothing
-        # pending, where the old net.recv_until raised. A server dropping the
-        # connection mid-session is ordinary - a 421 timeout does it - so the
-        # null becomes the error it used to be rather than a slice of null.
+        # pending. A server dropping the connection mid-session is ordinary -
+        # a 421 timeout does it - so that null is turned into an error here
+        # rather than being sliced a line later.
         raw = io.read_until(sock, b"\r\n")
         if is_null(raw) { error({ kind: "smtp", message: "the server closed the connection" }) }
         parsed = parse_reply_line(string(raw[0..len(raw) - 2]))

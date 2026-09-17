@@ -36,7 +36,7 @@ the client needs:
 import smtp
 ```
 
-## Use
+## Usage
 
 ```ecko
 import smtp
@@ -68,7 +68,12 @@ out = smtp.send({ mock: true }, { from: "a@x", to: "b@y", subject: "s", body: "h
 out.data    # the exact message a live send would deliver
 ```
 
-## Server options
+## API
+
+`send(server, msg)` is the whole surface. It opens a connection, delivers one
+message and closes, returning `{ accepted, reply }`.
+
+### Server options
 
 | field | meaning | default |
 |-------|---------|---------|
@@ -80,7 +85,7 @@ out.data    # the exact message a live send would deliver
 | `helo` | EHLO name | `"localhost"` |
 | `mock` | mock transport, no network | `false` |
 
-## Message fields
+### Message fields
 
 | field | meaning |
 |-------|---------|
