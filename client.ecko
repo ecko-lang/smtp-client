@@ -172,7 +172,7 @@ export fn send(server, msg) {
     port = port_of(server, mode)
     verify = opt(server, "verify", true)
     mut sock = if mode == "tls" {
-        net.connect_tls(server.host, port, { verify: verify })
+        net.connect_tls(server.host, port, verify: verify)
     } else {
         net.connect(server.host, port)
     }
@@ -184,7 +184,7 @@ export fn send(server, msg) {
         # starttls returns the upgraded stream. It refuses the upgrade if any
         # plaintext was read past the 220, which cannot happen here: the reply
         # reader stops at the CRLF that ends it.
-        sock = net.starttls(sock, { verify: verify })
+        sock = net.starttls(sock, verify: verify)
         command(sock, "EHLO " + helo, 250)
     }
     user = get(server, "user")

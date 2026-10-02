@@ -11,6 +11,9 @@ socket in place - no native code. AUTH PLAIN rides `std.encoding`'s base64.
 ecko get github.com/ecko-lang/smtp-client
 ```
 
+Needs Ecko 0.58 or newer, which takes `net.connect_tls`'s options by name. On
+an older Ecko, use 0.37.0.
+
 `ecko get` vendors the package under
 `./vendor/github.com/ecko-lang/smtp-client/` and pins a file-tree hash in
 `ecko.sum`.
